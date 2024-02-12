@@ -21,7 +21,7 @@ FROM node:alpine
 
 WORKDIR /var/www/html
 
-COPY --from=build /src/app/* .
+COPY --from=build /src/app/* ./
 
 # Install Apache
 RUN apk add --no-cache apache2
