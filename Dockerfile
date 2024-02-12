@@ -1,27 +1,32 @@
-# Specifies the base image we're extending
-FROM node:9
+# First stage - Build the Node.js application
+FROM node:9 AS build
 
-# Specify the "working directory" for the rest of the Dockerfile
 WORKDIR /src
 
-# Install packages using NPM 5 (bundled with the node:9 image)
 COPY ./package.json /src/package.json
 COPY ./package-lock.json /src/package-lock.json
 RUN npm install --silent
 
-# Add application code
 COPY ./app /src/app
 COPY ./bin /src/bin
 COPY ./public /src/public
-
-# Add the nodemon configuration file
 COPY ./nodemon.json /src/nodemon.json
 
-# Set environment to "development" by default
-ENV NODE_ENV development
+ENV NODE_ENV=production
 
-# Allows port 3000 to be publicly available
-EXPOSE 3000
+RUN npm run build
 
-# The command uses nodemon to run the application
-CMD ["node", "node_modules/.bin/nodemon", "-L", "bin/www"]
+# Second stage - Serve the application with a smaller image using Alpine
+FROM node:alpine
+
+WORKDIR /var/www/html
+
+COPY --from=build /src/app/build .
+
+# Install Apache
+RUN apk add --no-cache apache2
+
+# Expose port 80
+EXPOSE 80
+
+CMD ["httpd", "-D", "FOREGROUND"]
